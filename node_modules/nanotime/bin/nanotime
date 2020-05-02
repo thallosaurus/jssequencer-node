@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+var n = 0;
+
+function x() {
+  console.log(require('..')());
+  if (++n > 10) return;
+  setTimeout(x, 250);
+}
+
+x();

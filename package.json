@@ -1,0 +1,22 @@
+{
+  "name": "midi-sequencer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "out/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^13.13.4"
+  },
+  "dependencies": {
+    "easymidi": "^1.0.3",
+    "microtime": "^3.0.0",
+    "midi": "^1.0.0",
+    "nanotime": "^1.0.2",
+    "nanotimer": "^0.3.15"
+  }
+}
