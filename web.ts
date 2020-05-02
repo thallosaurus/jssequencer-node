@@ -14,6 +14,7 @@ export class Web extends TransportModule
     constructor(port:number = 10000)
     {
         super();
+        console.log("Hello!");
         this.port = port;
         this.app = express();
 
