@@ -2,6 +2,9 @@
 
 import { Transporter } from "./transport";
 import { Sequencer } from "./Sequencer";
+import { Web } from "./web";
+
+const settings = require("./settings.json");
 
 class Main
 {
@@ -10,9 +13,10 @@ class Main
     {
         //init transport
         console.log("Hello World!");
-        this.transport = new Transporter();
+        this.transport = new Transporter(settings["bpm"]);
         this.transport.addModule(new Sequencer());
-        this.transport.startTransport();
+        this.transport.addModule(new Web());
+        //this.transport.startTransport();
         //this.transport.send([176,22,1]);
         //this.transport.send([0xFA]);        
     }

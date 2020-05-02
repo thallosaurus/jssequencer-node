@@ -1,8 +1,8 @@
 "use strict";
 
-//import '@types/node';
+import { EventEmitter } from "events";
 
-import { Worker } from 'worker_threads';
+//import '@types/node';
 
 const microtime = require('microtime');
 
@@ -13,18 +13,25 @@ export enum PlayState {
     PLAYING = 1,
     STARTING = 2,
     RUNNING = 3,
-    CLOSING = 4
+    CLOSING = 4,
+    PAUSING = 5
+}
+
+export enum MIDI_SETTINGS  {
+    DEFAULT_BPM = 130
 }
 
 class MIDIConnection
 {
     private output: any;
+    private input: any;
     private bpm: number = 0;
     private started: boolean = false;
     private quarter: number = 0;
-    constructor()
+    private pauseTimer:number = 0;
+    constructor(bpm: number)
     {
-        this.setBPM(128);
+        this.setBPM(bpm);
         this.output = new midi.Output();
         //this.output.openPort();
         for (let i = 0; i < this.output.getPortCount(); i++)
@@ -33,6 +40,8 @@ class MIDIConnection
         }
         this.connectPort(1);
         
+        this.input = new midi.Input();
+
 
         //console.log(microtime);
     }
@@ -77,6 +86,11 @@ class MIDIConnection
         this.sendMessage([0xFA]);
     }
 
+    public pauseClock()
+    {
+        this.sendMessage([0xFC]);
+    }
+
     public sendClockPulse()
     {
         //console.log("Tick");
@@ -113,16 +127,16 @@ class MIDIConnection
     }
 }
 
-export class Transporter {
+export class Transporter extends EventEmitter {
 
     //storage for all transport modules.
-    private modules: Array<TransportModule>;
+    public modules: Array<TransportModule>;
 
     private playState: PlayState;
 
     private midi: MIDIConnection;
 
-    private lastPlayBeat: number = process.hrtime()[1];
+    private lastPlayBeat: number = microtime.now();
 
     //private worker: Worker;
 
@@ -132,13 +146,15 @@ export class Transporter {
 
     private startTime: number = microtime.now();
 
-    constructor() {
+    constructor(bpm: number) {
+        super();
         //this.setPlayState(PlayState.STOPPED);
         this.playState = PlayState.STOPPED;
-        this.modules = [];
+        this.modules = new Array<TransportModule>();
         //this.startTime = 0;
 
-        this.midi = new MIDIConnection();
+        this.midi = new MIDIConnection(bpm);
+        this.setup_events();
 
         //Configure MidiClock
         /*this.worker = new Worker('./out/MIDIClock.js');
@@ -148,9 +164,29 @@ export class Transporter {
         });*/
     }
 
+    public setup_events()
+    {
+        this.on('play', this.startTransport);
+
+        this.on('stop', this.stopTransport);
+    }
+
     public getBPM() : number
     {
         return this.midi.getBPM();
+    }
+
+    public setBPM(bpm: number) : void
+    {
+       
+        this.stopTransport();
+        this.midi.setBPM(bpm);
+        this.startTransport(bpm);
+        /*if (continue_)
+        {
+            this.midi.continueClock();
+            this.setPlayState(PlayState.PLAYING);
+        }*/
     }
 
     public shutdown()
@@ -169,14 +205,18 @@ export class Transporter {
     public sync(time: number) {
         //send to all modules
 
-        if (this.getPlayState() == PlayState.PLAYING)
-        {
-            this.midi.sync(time);
+        //if (this.getPlayState() == PlayState.PLAYING)
+        //{
             this.modules.forEach((e) => {
                 //e.sync(time - this.lastPlayBeat);
                 e.sync(time);
             });
-        }
+        //}
+    }
+
+    private syncInternal(time: number)
+    {
+        this.midi.sync(time);
     }
 
     public addModule(mod: TransportModule): void {
@@ -185,12 +225,63 @@ export class Transporter {
         this.modules.push(mod);
     }
 
+    public returnModule(index: number) : TransportModule {
+        return this.returnModules[index];
+    }
+
+    public getModuleCount() : number {
+        return this.modules.length;
+    }
+
+    public returnModuleInformation() : any {
+
+    }
+
+    public getTransportDetails()
+    {
+        return {
+            "status": this.getPlayState(),
+            "bpm": this.getBPM(),
+            "modules": this.getModuleNames()
+        }
+    }
+
+    public sendToModule(id: number, msg:any, t: any) : any
+    {
+        this.modules[id].onMessage(msg);
+    }
+
+    private getModuleNames()
+    {
+        let names = [];
+
+        for (let i = 0 ; i < this.getModuleCount(); i++)
+        {
+            names.push(this.getModules()[i].getName());   
+        }
+
+        return names;
+    }
+
+    public returnModules() : Array<TransportModule>
+    {
+        return this.modules;
+    }
+
     private getModules(): Array<TransportModule> {
         return this.modules;
     }
 
-    public startTransport(): void {
+    public startTransport(bpm:number = 130): PlayState {
+        //reset transport
+        this.stopTransport();
+
         this.setPlayState(PlayState.STARTING);
+
+        /*if (bpm != undefined)
+        {
+            this.setBPM(bpm);
+        }*/
         try {
             this.getModules().forEach((e) => {
                 e.start();
@@ -200,6 +291,7 @@ export class Transporter {
             this.setPlayState(PlayState.STOPPED);
             return;
         }
+        this.startTime = microtime.now();
         this.lastPlayBeat = new Date().getTime();
         this.setPlayState(PlayState.PLAYING);
 
@@ -209,8 +301,11 @@ export class Transporter {
                 //let hrTime = process.hrtime.bigint;
                 //let ts = hrTime[0] * 1000000 + hrTime[1] / 1000;
                 this.sync((microtime.now() - this.startTime) / 1000);
+                this.syncInternal((microtime.now() - this.startTime) / 1000);
             }
-        }, 10);
+        }, 1);
+
+        return this.getPlayState();
 
         //send midi clock
     }
@@ -219,11 +314,13 @@ export class Transporter {
     {
         if (this.getPlayState() == PlayState.PLAYING)
         {
+            this.midi.stopClock();
             this.modules.forEach((e) => {
                 e.onStopModule();
             });
         }
-        this.setPlayState(PlayState.CLOSING);
+        this.setPlayState(PlayState.STOPPED);
+        return this.getPlayState();
     }
 
     public getPlayState(): PlayState {
@@ -236,15 +333,25 @@ export class Transporter {
     }
 }
 
-export class TransportModule {
+export class TransportModule extends EventEmitter {
 
     private moduleId: number;
     private playStateModule: PlayState;
-    private transport?: Transporter;
+    public transport?: Transporter;
+
+    public moduleName:string;
 
     constructor() {
+        super();
         this.moduleId = -1;
         this.playStateModule = PlayState.STOPPED;
+
+        this.moduleName = "UnknownModule <Inherit this.moduleName>";
+    }
+
+    public getName() : string
+    {
+        return this.moduleName;
     }
 
     public applyId(id: number) {
@@ -295,16 +402,18 @@ export class TransportModule {
 
     public onStopModule()
     { 
-        this.onStop();
+        this.stop();
         this.setPlayState(PlayState.STOPPED);
     }
 
-    public onStop() {}
+    public stop() {}
 
     /**
      * This Function must set this.playStateModule to PlayState.RUNNING on success, otherwise, the prestart function will throw an error!
      */
     public startModuleInstance() { }
+
+    public onMessage(msg:any){}
 }
 
 class TransportStartException extends Error {
