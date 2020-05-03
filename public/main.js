@@ -41,6 +41,8 @@ class SequencerUI
         this.socket.emit("get_current_sequencers");
     }
 
+
+
     emitSocket(type, cb)
     {
         this.socket.emit(type, cb);
@@ -53,10 +55,22 @@ class SequencerUI
 
     removeAllChannels()
     {
-        for (let e in this.channels)
-        {
-            this.channels.pop();
-        }
+        document.querySelectorAll("span#channels")
+        .forEach((e) => {
+            console.log(e);
+//            e.removeChild(e);
+            /*for (let i = 0; i < e.childElementCount; i++)
+            {
+                console.log(e.children[i]);
+                e.removeChild(e.children[i]);
+            }*/
+            e.innerHTML = "";
+        });
+    }
+
+    clearChannel(i)
+    {
+        this.channel
     }
 
     addChannel(i, data)
@@ -81,6 +95,10 @@ class SequencerUI
             this.createStepSequencer(JSON.parse(data));
         });
 
+        this.socket.on("update", (data) => {
+            this.animate(data);
+        })
+
         this.socket.on("ts", data => {
             console.log(data);
         });
@@ -94,10 +112,24 @@ class SequencerUI
         });
     }
 
+    animate(time)
+    {
+        let elems = document.querySelectorAll(".step-selector")
+        .forEach((e) => {
+            //e.querySelectorAll(check)
+        });
+    }
+
     stepClickHandler(e)
     {
-        console.log(this);
-        sendStepChange(e.srcElement.dataset);
+        console.log(e);
+        let data = {
+            "checked": e.srcElement.checked,
+            "step": e.srcElement.dataset.step,
+            "channel": e.srcElement.dataset.channel
+        }
+        //e.srcElement.dataset.check = e.srcElement.checked;
+        sendStepChange(data);
     }
 }
 

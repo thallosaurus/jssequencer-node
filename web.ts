@@ -8,6 +8,7 @@ const io = require('socket.io')(http);
 
 import { PlayState, TransportModule, TransportMessage } from './transport';
 import { FOOR_ON_THE_FLOOR } from './Sequencer';
+import { Socket } from 'dgram';
 
 
 export class Web extends TransportModule
@@ -78,7 +79,9 @@ export class Web extends TransportModule
 
     public sendSocketData(socket)
     {
-        io.emit("sequpdate", JSON.stringify(this.getSequencerMessage()));
+        let data = JSON.stringify(this.getSequencerMessage());
+        console.log(data);
+        socket.emit("sequpdate", data);
     }
     /*public getSequencer()
     {
@@ -97,9 +100,20 @@ export class Web extends TransportModule
 
     }*/
 
+    public sync(time:number)
+    {
+        io.emit("update", time);
+    }
+
     public setBox(data:any)
     {
         this.transport.modules[0].onMessage(new TransportMessage("tick_box", data));
+    }
+
+    public setPatternNumber(ptn:number, callback:any)
+    {
+        let data = {"number": ptn, "callback": callback};
+        this.transport.modules[0].onMessage(new TransportMessage("set_ptn", data));
     }
 
     public setupSocketIo(socket)
@@ -128,6 +142,12 @@ export class Web extends TransportModule
             console.log("Sending Sequencer Data");
         });
 
+        socket.on("changePattern", (data) => {
+            this.setPatternNumber(data, () => {
+                this.sendSocketData(socket);
+            });
+        })
+
         socket.on("step", (e) => {
             console.log(e);
             this.setBox(e);
@@ -137,7 +157,7 @@ export class Web extends TransportModule
     public getSequencerMessage()
     {
         let message = this.transport.modules[0].onMessage(new TransportMessage("get_data"));
-        console.log(message);
+        
         //io.emit("seq_data", message);
         return message;
     }
