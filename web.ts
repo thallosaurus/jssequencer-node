@@ -8,6 +8,7 @@ const io = require('socket.io')(http);
 
 import { PlayState, TransportModule, TransportMessage } from './transport';
 import { FOOR_ON_THE_FLOOR } from './Sequencer';
+import { MessagePort } from 'worker_threads';
 
 class UpdateChunk
 {
@@ -190,9 +191,28 @@ export class Web extends TransportModule
             this.setBox(e);
         });
 
+        socket.on("change_note_for_channel", (e) => {
+            this.changeChannelNote(e);
+        })
+
         socket.on("change_bpm", (e) => {
             this.transport.setBPM(e.bpm);
         });
+
+        socket.on("add_pattern", (e) => {
+            this.addPattern(e);
+            this.sendSocketData(socket);
+        });
+    }
+
+    public addPattern(e)
+    {
+        this.transport.modules[0].onMessage(new TransportMessage("add_pattern"));
+    }
+
+    public changeChannelNote(e)
+    {
+        this.transport.modules[0].onMessage(new TransportMessage("set_channel_note", e));
     }
 
     public getSequencerMessage()

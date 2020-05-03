@@ -10,5 +10,11 @@
     <input type="button" value="Stop Transport" onclick="stop()">
     <span id="channels" data-sequencers="0"></span>
     <input type="button" value="+" onclick="add(this)">
-    <span id="patternselector"></span>
+    <div id="patternselector"></div>
+
+    <span class="bpm-control">
+        <input id="decBpm" type="button" value="-">
+        <input id="bpm" type="number" min="30" max="300" disabled>
+        <input id="incBpm" type="button" value="+">
+    </span>
 </body>

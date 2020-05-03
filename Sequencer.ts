@@ -6,6 +6,18 @@ const KICK = 36;
 const SNARE = 40;
 const CLOSED_HIHAT = 42;
 
+const BD = 36;
+const SD = 40;
+const LT = 45;
+const MT = 47;
+const HT = 50;
+const RS = 37;
+const HC = 39;
+const CB = 56;
+const CY = 51;
+const OH = 46;
+const CH = 42;
+
 export const FOOR_ON_THE_FLOOR = [
     true, false, false, false,
     true, false, false, false,
@@ -52,7 +64,7 @@ class Pattern
     {
         switch(type)
         {
-            case 0:
+            /*case 0:
                 let kick = new Channel(KICK, 2, 16, "KICK");
                 kick.applySteps(FOOR_ON_THE_FLOOR);
                 this.addChannel(kick);
@@ -74,6 +86,20 @@ class Pattern
                 this.addChannel(kick2);
                 this.addChannel(snare2);
                 this.addChannel(hihat2);
+                break;
+                */
+            case 0:
+                this.addChannel(new Channel(BD, 2, 16, "KICK"));
+                this.addChannel(new Channel(SD, 2, 16, "SNARE DRUM"));
+                this.addChannel(new Channel(LT, 2, 16, "LOW TOM"));
+                this.addChannel(new Channel(MT, 2, 16, "MID TOM"));
+                this.addChannel(new Channel(HT, 2, 16, "HIGH TOM"));
+                this.addChannel(new Channel(RS, 2, 16, "RIM SHOT"));
+                this.addChannel(new Channel(HC, 2, 16, "HAND CLAP"));
+                this.addChannel(new Channel(CB, 2, 16, "COWBELL"));
+                this.addChannel(new Channel(CY, 2, 16, "CYMBAL"));
+                this.addChannel(new Channel(OH, 2, 16, "OPEN HIHAT"));
+                this.addChannel(new Channel(CH, 2, 16, "CLOSED HIHAT"));
                 break;
         }
     }
@@ -110,13 +136,14 @@ export class Sequencer extends TransportModule
         let ptn1 = new Pattern();
         ptn1.fillTestData(0);
         this.pattern.push(ptn1);
+        
 
-        let ptn2 = new Pattern();
+        /*let ptn2 = new Pattern();
         ptn2.fillTestData(1);
-        this.pattern.push(ptn2);
+        this.pattern.push(ptn2);*/
 
         //default the first
-        this.setCurrentPattern(1);
+        this.setCurrentPattern(0);
 
         //prepare channel array by filling it with steps:
 
@@ -240,11 +267,12 @@ export class Sequencer extends TransportModule
 
                     if (currentStep.getState())
                     {
-                    //console.log("Position: " + (this.qu % 16));
-                    let channel = currentStep.channel;
-                    let note = currentStep.note;
-                    let velocity = currentStep.velocity;
-                    this.playNote(channel, note, velocity);
+                        //console.log("Position: " + (this.qu % 16));
+                        let channel = currentStep.channel;
+                        //let note = currentStep.note;
+                        let note = currentChannel.getNote();
+                        let velocity = currentStep.velocity;
+                        this.playNote(channel, note, velocity);
                     }
                 }
             //console.log(d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds());
@@ -314,7 +342,21 @@ export class Sequencer extends TransportModule
                 console.log(msg);
                 this.addStepSequencerExternal(msg.data.note, msg.data.channel, msg.data.steps, msg.data.name);
                 break;
+
+            case "set_channel_note":
+                this.setChannelNote(msg);
+                break;
+
+            case "add_pattern":
+                this.addPattern();
+                break;
         }
+    }
+
+    public setChannelNote(msg)
+    {
+        //console.log(msg);
+        this.getChannel(msg.data.channel).setNote(msg.data.note);
     }
 
     public addStepSequencerExternal(note:number, channel:number, steps:number, name:string)
@@ -330,16 +372,23 @@ class Channel
     private length:number = 16;
     private channel:Array<Step> = new Array<Step>();
     private name:string = "";
+    private note:number = 36;
 
     constructor(note: number, channel: number, length:number, name:string)
     {
         this.length = length;
         for (let i = 0; i < this.length; i++)
         {
-            let fotf = (i % 4 == 0 ? true : false);
+            //let fotf = (i % 4 == 0 ? true : false);
             this.channel.push(new Step(false, note, channel));
         }
+        this.note = note;
         this.name = name;
+    }
+
+    public getNote() : number
+    {
+        return this.note;
     }
 
     public getStepCount()
@@ -374,6 +423,18 @@ class Channel
             }
         }
     }
+
+    public setNote(note:number)
+    {
+        /*this.channel.forEach((e) => {
+            e.setNote(note);
+        });*/
+        /*for (let i = 0; i < this.channel.length; i++)
+        {
+            this.channel[i].setNote(note);
+        }*/
+        this.note = note;
+    }
 }
 
 class Step
@@ -397,5 +458,10 @@ class Step
     setState(state: boolean)
     {
         this.playMe = state;
+    }
+
+    setNote(note:number)
+    {
+        this.note = note;
     }
 }

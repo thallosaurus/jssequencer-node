@@ -40,9 +40,22 @@ class SequencerUI
         this.setupSocket();
 
         this.socket.emit("get_current_sequencers");
+
+        console.log(document.getElementById("incBpm"));
+
+
     }
 
+    setupEventListener()
+    {
+        document.getElementById("incBpm").addEventListener("click", function(e) {
+            changeBpm(this.bpm - 1);
+        });
 
+        document.getElementById("decBpm").addEventListener("click", function(e) {
+            changeBpm(this.bpm + 1);
+        });
+    }
 
     emitSocket(type, cb)
     {
@@ -111,6 +124,17 @@ class SequencerUI
             btn.addEventListener("click", this.onPatternClick);
             d.append(btn);
         }
+
+        let delButton = document.createElement("input");
+        delButton.type = "button";
+        delButton.value = "+";
+        delButton.addEventListener("click", this.addPattern);
+        d.append(delButton);
+    }
+
+    addPattern(e)
+    {
+        socket.emit("add_pattern");
     }
 
     onPatternClick(e)
@@ -122,6 +146,7 @@ class SequencerUI
     setBPM(bpm)
     {
         this.bpm = bpm;
+        document.getElementById("bpm").value = bpm;
     }
 
     getBPM(bpm)
@@ -342,4 +367,9 @@ function changeBpm(bpm)
     );
 }
 
-new SequencerUI();
+let ui = new SequencerUI();
+
+window.onload = function (e)
+{
+    ui.setupEventListener();
+}
