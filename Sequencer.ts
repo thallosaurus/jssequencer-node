@@ -1,4 +1,4 @@
-import { TransportModule, PlayState } from "./transport";
+import { TransportModule, PlayState, TransportMessage } from "./transport";
 
 const KICK = 36;
 const SNARE = 40;
@@ -162,12 +162,24 @@ export class Sequencer extends TransportModule
         this.setPlayState(PlayState.PLAYING);
     }
 
-    public onMessage(msg: any)
+    public onMessage(msg: TransportMessage)
     {
         console.log(msg);
-        switch(msg["type"]) {
+        switch(msg.type) {
             case "place_full_steps":
-                this.channel[msg["channel"]].applySteps(msg);
+                this.channel[msg.data[0]].applySteps(msg.data[1]);
+                break;
+
+            case "get_data":
+                return this.getSequencerData();
+
+            case "tick_box":
+                console.log(msg);
+                let tick = this.getChannel(msg.data.channel)
+                console.log(tick);
+                /*this.channel[msg.data.channel].setStep(msg.data.step, tick);
+                console.log(this.channel);*/
+                break;
         }
     }
 }
@@ -202,6 +214,11 @@ class Channel
     public getStep(step: number)
     {
         return this.channel[step];
+    }
+
+    public setStep(step:number, data:boolean)
+    {
+        this.channel[step].playMe = data;
     }
 
     public applySteps(steps:Array<boolean>)

@@ -16,6 +16,7 @@ class Main
         this.transport = new Transporter(settings["bpm"]);
         this.transport.addModule(new Sequencer());
         this.transport.addModule(new Web());
+        //console.log(this.transport.outputModuleData());
         //this.transport.startTransport();
         //this.transport.send([176,22,1]);
         //this.transport.send([0xFA]);        

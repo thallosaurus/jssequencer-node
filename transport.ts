@@ -217,6 +217,10 @@ export class Transporter extends EventEmitter {
     private syncInternal(time: number)
     {
         this.midi.sync(time);
+
+        this.modules.forEach((e) => {
+            e.syncInternal(time);
+        });
     }
 
     public addModule(mod: TransportModule): void {
@@ -257,7 +261,7 @@ export class Transporter extends EventEmitter {
 
         for (let i = 0 ; i < this.getModuleCount(); i++)
         {
-            names.push(this.getModules()[i].getName());   
+            names.push(this.getModules()[i].getName()); 
         }
 
         return names;
@@ -331,6 +335,11 @@ export class Transporter extends EventEmitter {
     {
         this.playState = state;
     }
+
+    public outputModuleData()
+    {
+        return this.modules;
+    }
 }
 
 export class TransportModule extends EventEmitter {
@@ -348,6 +357,8 @@ export class TransportModule extends EventEmitter {
 
         this.moduleName = "UnknownModule <Inherit this.moduleName>";
     }
+
+    public syncInternal(time:number){}
 
     public getName() : string
     {
@@ -419,5 +430,16 @@ export class TransportModule extends EventEmitter {
 class TransportStartException extends Error {
     constructor(id: number) {
         super("Module with id " + id + " failed to start");
+    }
+}
+
+export class TransportMessage
+{
+    public type:string = "";
+    public data:any;
+    constructor(type:string, data?:any)
+    {
+        this.type = type;
+        this.data = data;
     }
 }
