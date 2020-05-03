@@ -153,15 +153,21 @@ export class Sequencer extends TransportModule
         return this.pattern[this.currentPattern];
     }
 
-    public addPattern(l)
+    public addPattern()
     {
-        this.pattern.push(l);
+        this.pattern.push(new Pattern());
     }
 
     public getSequencerData()
     {
         //let state = {};
-        return this.getChannelRaw();
+        return {
+            "channeldata": this.getChannelRaw(),
+            "pattern": {
+                "count": this.pattern.length,
+                "current_pattern": this.currentPattern
+            }
+        };
         /*for (let i = 0; i < this.channel.length; i++)
         {
             let chName = this.getChannel(i).getName();
@@ -303,7 +309,19 @@ export class Sequencer extends TransportModule
                 //console.log("meow", msg);
                 this.schedulePatternChange(msg.data.number, msg.data.callback);                
                 break;
+
+            case "addSequencer":
+                console.log(msg);
+                this.addStepSequencerExternal(msg.data.note, msg.data.channel, msg.data.steps, msg.data.name);
+                break;
         }
+    }
+
+    public addStepSequencerExternal(note:number, channel:number, steps:number, name:string)
+    {
+        let newChannel = Sequencer.createChannel(note, channel, steps, name);
+        console.log(newChannel);
+        this.addChannel(newChannel);
     }
 }
 

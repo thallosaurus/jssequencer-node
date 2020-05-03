@@ -8,7 +8,25 @@ const io = require('socket.io')(http);
 
 import { PlayState, TransportModule, TransportMessage } from './transport';
 import { FOOR_ON_THE_FLOOR } from './Sequencer';
-import { Socket } from 'dgram';
+
+class UpdateChunk
+{
+    private time = 0;
+    private bpm = 0;
+
+    constructor()
+    {}
+
+    setTime(time:number)
+    {
+        this.time = time;
+    }
+
+    setBPM(bpm:number)
+    {
+        this.bpm = bpm;
+    }
+}
 
 
 export class Web extends TransportModule
@@ -39,7 +57,7 @@ export class Web extends TransportModule
 
     public setupRoutes()
     {
-        app.get("/play", (req, res) => {
+        /*app.get("/play", (req, res) => {
             let status = this.transport.startTransport(req.query.bpm);
             res.send("Status: " + status);
         });
@@ -68,7 +86,7 @@ export class Web extends TransportModule
         app.get("/set_bpm", (req, res) => {
             this.transport.setBPM(req.query.bpm);
             res.send("bpm: " + this.transport.getBPM());
-        });
+        });*/
 
         //Socket io handles:
         io.on('connection', (socket) => {
@@ -102,7 +120,15 @@ export class Web extends TransportModule
 
     public sync(time:number)
     {
-        io.emit("update", time);
+        let update:UpdateChunk = new UpdateChunk();
+        update.setTime(time);
+        update.setBPM(this.transport.getBPM());
+        io.emit("update", update);
+    }
+
+    public setBPMExternal(bpm:number)
+    {
+        this.transport.setBPM(bpm);
     }
 
     public setBox(data:any)
@@ -114,6 +140,11 @@ export class Web extends TransportModule
     {
         let data = {"number": ptn, "callback": callback};
         this.transport.modules[0].onMessage(new TransportMessage("set_ptn", data));
+    }
+
+    public addSequencer(data)
+    {
+        this.transport.modules[0].onMessage(new TransportMessage("addSequencer", data));
     }
 
     public setupSocketIo(socket)
@@ -146,11 +177,21 @@ export class Web extends TransportModule
             this.setPatternNumber(data, () => {
                 this.sendSocketData(socket);
             });
-        })
+        });
+
+        socket.on("add_sequencer", (data) =>
+        {
+            this.addSequencer(data);
+            this.sendSocketData(socket);
+        });
 
         socket.on("step", (e) => {
             console.log(e);
             this.setBox(e);
+        });
+
+        socket.on("change_bpm", (e) => {
+            this.transport.setBPM(e.bpm);
         });
     }
 

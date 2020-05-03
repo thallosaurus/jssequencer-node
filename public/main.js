@@ -32,6 +32,7 @@ function start()
 class SequencerUI
 {
     channels = [];
+    qu = 0;
     constructor()
     {
         this.socket = socket;
@@ -82,10 +83,50 @@ class SequencerUI
     {
         console.log(data);
         this.removeAllChannels();
-        for (let i = 0; i < data.length; i++)
+        for (let i = 0; i < data.channeldata.length; i++)
         {
-            this.addChannel(i, data[i]);
+            this.addChannel(i, data.channeldata[i]);
         }
+
+        this.applyPatternData(data.pattern);
+    }
+
+    deletePatternButton()
+    {
+        let d = document.getElementById("patternselector");
+        d.innerHTML = "";
+    }
+
+    applyPatternData(c)
+    {
+        this.deletePatternButton();
+        let d = document.getElementById("patternselector");
+
+        for (let i = 0; i < c.count; i++)
+        {
+            let btn = document.createElement("input");
+            btn.type = "button";
+            btn.value = i;
+            btn.dataset.patternnumber = i;
+            btn.addEventListener("click", this.onPatternClick);
+            d.append(btn);
+        }
+    }
+
+    onPatternClick(e)
+    {
+        console.log(e.srcElement.dataset);
+        socket.emit("changePattern", parseInt(e.srcElement.dataset.patternnumber));
+    }
+
+    setBPM(bpm)
+    {
+        this.bpm = bpm;
+    }
+
+    getBPM(bpm)
+    {
+        return this.bpm;
     }
 
     setupSocket()
@@ -96,8 +137,10 @@ class SequencerUI
         });
 
         this.socket.on("update", (data) => {
-            this.animate(data);
-        })
+            this.setBPM(data["bpm"]);
+            //this.animate(data["time"]);
+            //console.log(data);
+        });
 
         this.socket.on("ts", data => {
             console.log(data);
@@ -114,9 +157,36 @@ class SequencerUI
 
     animate(time)
     {
+        
+
+        //resetOldSteps
+
+        let resolution = 4;
+
+        let pulse = (60000 / this.getBPM() / resolution);
+        
+            if (time > this.qu * pulse)
+            {
+                let e = document.getElementsByClassName(".step-selector")[0]
+                //.forEach((e) => {
+                    this.resetOldSteps();
+                    let checks = e.querySelectorAll(".chk-container");
+
+                    let stepCounter = checks.length;
+
+                    checks[this.qu % stepCounter].children[0].dataset.playing = true;
+                    //console.log(checks[this.qu % stepCounter]);
+                    //console.log(e.children[0].children[this.qu % len].dataset.play = );
+                //});
+                this.qu++;
+            }
+    }
+
+    resetOldSteps()
+    {
         let elems = document.querySelectorAll(".step-selector")
         .forEach((e) => {
-            //e.querySelectorAll(check)
+            e.children[0].querySelector("input").dataset.playing = false;
         });
     }
 
@@ -133,12 +203,22 @@ class SequencerUI
     }
 }
 
+function add()
+{
+    //note:number, channel:number, steps:number, name:string,
+    let data = {
+        note: 36,
+        channel: 2,
+        steps: 16,
+        name: "New Channel"
+    };
+    socket.emit("add_sequencer", data);
+}
+
 function sendStepChange(ds)
 {
     socket.emit("step", JSON.stringify(ds));
 }
-
-new SequencerUI();
 
 class Channel
 {
@@ -252,3 +332,14 @@ class Step
         return this.play;
     }
 }
+
+function changeBpm(bpm)
+{
+    socket.emit("change_bpm",
+        {
+            "bpm": bpm
+        }
+    );
+}
+
+new SequencerUI();
