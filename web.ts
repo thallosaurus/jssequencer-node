@@ -45,10 +45,10 @@ export class Web extends TransportModule
         
         this.setupRoutes();
 
-        app.use(express.static(path.join(__dirname, 'public')));
+        app.use(express.static(path.join(process.cwd(), 'public')));
 
         app.get('/', (req, res) => {
-            res.sendFile(__dirname + "/public/index.html");
+            res.sendFile(process.cwd() + "/public/index2.html");
         });
         //this.app.listen(this.port, () => console.log('Web Interface running on Port: ' + this.port));
         http.listen(this.port, () => {

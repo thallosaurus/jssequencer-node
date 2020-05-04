@@ -4,7 +4,7 @@ import { Transporter } from "./transport";
 import { Sequencer } from "./Sequencer";
 import { Web } from "./web";
 
-const settings = require("./settings.json");
+const settings = require("../config/settings.json");
 
 class Main
 {
