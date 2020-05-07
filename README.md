@@ -28,3 +28,6 @@ Now, clone this repo and run:
   ``npm start``
 
 The Application should now start. go to <http://localhost:10000/index2.html> and you see the main UI.
+
+## What can I do with this?
+coming soon
