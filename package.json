@@ -20,6 +20,6 @@
     "midi": "^1.0.0",
     "nanotime": "^1.0.2",
     "nanotimer": "^0.3.15",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.4.0"
   }
 }
